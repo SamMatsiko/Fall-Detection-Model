@@ -8,7 +8,9 @@ if(!require(e1071)) install.packages("e1071", repos = "http://cran.us.r-project.
 set.seed(755, sample.kind="Rounding")
 
 #Read dataset into R
-FallData =read.csv("falldetection.csv")
+FallData =read.csv("falldeteciton.csv")
+
+getwd()
 
 #Changing the target label variable to factor class
 FallData$ACTIVITY<-as.factor(FallData$ACTIVITY)
@@ -73,4 +75,12 @@ Accuracy_results
 
 #Checking the importance of each of the predictors.
 importance(rf_fit)
+
+
+
+
+
+
+
+
 
