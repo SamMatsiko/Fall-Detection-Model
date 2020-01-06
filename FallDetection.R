@@ -19,12 +19,12 @@ FallData$ACTIVITY<-as.factor(FallData$ACTIVITY)
 FallData[,2:7]<-scale(FallData[,2:7])
 
 
-#Partioning away the validation set that will be test after all the modelling.  
+#Partioning away the validation set that will be used to test after all the modelling.  
 Partition_set <- createDataPartition(y = FallData$ACTIVITY , times = 1,p = 0.2, list = FALSE)
 main_set <- FallData[-Partition_set,]
 validation_set <- FallData[Partition_set,]
 
-#Subpatrioning the remaining set into train and test sets 
+#Subpartitioning the remaining set into train and test sets 
 test_index <- createDataPartition(y = main_set$ACTIVITY, times = 1,p = 0.5, list = FALSE)
 train_set <- main_set[-test_index,]
 test_set <- main_set[test_index,]
