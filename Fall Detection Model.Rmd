@@ -11,6 +11,10 @@ output: pdf_document
 if(!require(ggcorrplot)) install.packages("ggcorrplot", repos = "http://cran.us.r-project.org")
 if(!require(dplyr)) install.packages("dplyr", repos = "http://cran.us.r-project.org")
 if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(randomForest)) install.packages("randomForest", repos = "http://cran.us.r-project.org")
+if(!require(e1071)) install.packages("e1071", repos = "http://cran.us.r-project.org")
+if(!require(readr)) install.packages("readr", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 ```
 
 # Introduction
@@ -37,8 +41,11 @@ As indicated in the method section below, the data has first been explored using
 Using different exploratory techniques detailed below, data is observed to be in tidy format with no null values. However, data has been observed to be of varying scales and has therfore been scaled. Further more, predictors are not correlated to the target label. It is also important to note that the variables are generally non-uniformly distributed. Given this nature of data, svm,knn and random forest machine learning approaches have been deployed 
 
 
-```{r FallData, echo=FALSE}
-FallData =read.csv("falldeteciton.csv")
+```{r FallData, include=FALSE}
+urlfile="https://raw.githubusercontent.com/SamMatsiko/Fall-Detection-Model/master/falldeteciton.csv
+"
+FallData<-read_csv(url(urlfile))
+FallData<-as.data.frame(FallData)
 FallData$ACTIVITY<-as.factor(FallData$ACTIVITY)
 ```
 ## Data Overview
@@ -60,7 +67,7 @@ sapply(FallData,class)
 head(FallData)
 ```
 **Checking for null values**
-```{r ,echo=FALSE}
+```{r }
 any(is.na(FallData))
 ```
 
@@ -140,12 +147,85 @@ FallData %>% gather(Metric, Value, -ACTIVITY) %>%
   theme(axis.text.x = element_blank())
 ```
 
+## Modelling methodology
 
-## Results
-The model has been trained with three machine learning approaches, Support Vector Machines(SVM),knn and random forest as the data is largely not correlated and non-uniformally distributed. For a model that distinguishes different human movements, the performance metric chosen is accuracy.Random forest produced the best results with accuracy at 77% for the final results and Sensitivity of 75% and Specificity of 89% for class 3, the falling category. During training, SVM had the lowest accuracy at 23% followed by knn at 59% and random forest had 75%.
+Given the correlation and distribution of data, Support Vector Machines(SVM),knn and random forest machine learnining algorithms have been considered.The dataset is first split into main and validation sets in ratios of 8:2 respectively. While the validation set has been set aside for final tests, the main set has been split further into train and test sets in proportions of 50% each for intermidiate training and testing to determine the best performing approach. 
 
-## Conclusion
-A fall detection system to detect falls from six other human movements has been built using a random forest machine learning approach with an overall accuracy of 77%. While the accuracy is still wanting, performance of the model can improved with more data as already observed in the accuracy difference when training with less and much more data. Performance of the model might also be improved if trained with real-world scenarios data. Future works will look at feature engineering, ensembling and PCA in a bid to improve performance.  
+The three machine learning algorithms have been deployed to train(with train set) and test(with test set) to determine the best performing algorithm. The best performing algorithm is the random forest approach that has been trained with the main set and tested with the validation set to obtain an accuracy of 77%. Accuracy is the preffered preformance metric as the model is expected to distinguish the different human movements. 
+
+
+# Results
+
+The table below shows results by the different machine learning approaches. Training and testing is first done on train set and test set respectively to determine the best performing algorithm. Lastly, since random forest is the best performing algorithm, it has been trained(with the main set) and tested(with the validation set) to obtain an accuracy of 77%.
+
+```{r,echo=FALSE}
+Partition_set <- createDataPartition(y = FallData$ACTIVITY , times = 1,p = 0.2, list = FALSE)
+main_set <- FallData[-Partition_set,]
+validation_set <- FallData[Partition_set,]
+
+#Subpartitioning the remaining set into train and test sets 
+test_index <- createDataPartition(y = main_set$ACTIVITY, times = 1,p = 0.5, list = FALSE)
+train_set <- main_set[-test_index,]
+test_set <- main_set[test_index,]
+
+#Training with svm on train_Set and tests on test_set
+svm_fit <- svm(ACTIVITY ~ . ,train_set)
+y_hat_svm <- predict(svm_fit, test_set)
+cm_svm<-confusionMatrix(y_hat_svm,test_set$ACTIVITY)$overall["Accuracy"]
+
+#Creating a table that will store accuracy results of each ML algorithm
+Accuracy_results <- tibble(Method = "Training with Svm",  Accuracy= cm_svm)
+
+
+
+#Training with knn on train_Set and tests on test_set
+knn_fit<-train(ACTIVITY~.,data = train_set,method="knn")
+y_hat_knn<-predict(knn_fit,test_set)
+cm_knn<-confusionMatrix(y_hat_knn,test_set$ACTIVITY)$overall["Accuracy"]
+Accuracy_results <- bind_rows(Accuracy_results,
+                              tibble(Method="Training with knn",
+                                     Accuracy = cm_knn))
+
+
+#Training with random forest on train_Set and tests on test_set
+
+rf_fit <- randomForest(ACTIVITY~., data = train_set)
+
+y_hat_rf<-predict(rf_fit,test_set)
+
+cm_rf<-confusionMatrix(y_hat_rf,test_set$ACTIVITY)$overall["Accuracy"]
+Accuracy_results <- bind_rows(Accuracy_results,
+                              tibble(Method="Training with random forest",
+                                     Accuracy = cm_rf))
+
+
+
+#Final test on validation set using random forest
+
+rf_fit_main <- randomForest(ACTIVITY~ ., data = main_set)
+
+y_hat_rf_main<-predict(rf_fit_main,validation_set)
+
+cm_rf_main<-confusionMatrix(y_hat_rf_main,validation_set$ACTIVITY)$overall["Accuracy"]
+Accuracy_results <- bind_rows(Accuracy_results,
+                              tibble(Method="Final test on Random forest with validation set",
+                                     Accuracy = cm_rf_main))
+as.data.frame(Accuracy_results) 
+
+```
+**Determining imporatance of predictors**
+
+The importance of predictors is detailed in the table below.
+
+```{r echo=FALSE}
+importance(rf_fit_main)
+```
+
+
+
+
+# Conclusion
+A fall detection system to detect falls from five other human movements has been built using a random forest machine learning approach with an overall accuracy of 77%. While the accuracy is still wanting, performance of the model can improved with more data as already observed in the difference of accuracy when training with less and much more data. Performance of the model might also be improved if trained with real-world scenarios data. Future works will look at feature engineering, ensembling and PCA in a bid to improve performance.  
 
 
 
