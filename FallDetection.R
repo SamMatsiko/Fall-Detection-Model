@@ -3,14 +3,17 @@ if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-
 if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 if(!require(randomForest)) install.packages("randomForest", repos = "http://cran.us.r-project.org")
 if(!require(e1071)) install.packages("e1071", repos = "http://cran.us.r-project.org")
+if(!require(readr)) install.packages("readr", repos = "http://cran.us.r-project.org")
 
 # if using R 3.5 or earlier, use `set.seed(1)` instead
 set.seed(755, sample.kind="Rounding")
 
-#Read dataset into R
-FallData =read.csv("falldeteciton.csv")
+#Reading the dataset from github
+urlfile="https://raw.githubusercontent.com/SamMatsiko/Fall-Detection-Model/master/falldeteciton.csv
+"
 
-getwd()
+FallData<-read_csv(url(urlfile))
+
 
 #Changing the target label variable to factor class
 FallData$ACTIVITY<-as.factor(FallData$ACTIVITY)
@@ -32,8 +35,9 @@ test_set <- main_set[test_index,]
 #Training with svm on train_Set and tests on test_set
 svm_fit <- svm(ACTIVITY ~ . ,train_set)
 y_hat_svm <- predict(svm_fit, test_set)
-cm_svm<-confusionMatrix(pred,test_set$ACTIVITY)$overall["Accuracy"]
+cm_svm<-confusionMatrix(y_hat_svm,test_set$ACTIVITY)$overall["Accuracy"]
 
+#Creating a table that will store accuracy results of each ML algorithm
 Accuracy_results <- tibble(method = "Training with Svm",  Accuracy= cm_svm)
 Accuracy_results
 
@@ -73,8 +77,7 @@ Accuracy_results <- bind_rows(Accuracy_results,
 Accuracy_results
 
 
-#Checking the importance of each of the predictors.
-importance(rf_fit)
+
 
 
 
